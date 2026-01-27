@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Lock files
+package-lock.json
+
+# Environment variables
+.env
+
+# Uploads / public assets
+/public/img/
+
+# Local data files
+products.json
+carts.json
