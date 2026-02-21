@@ -4,8 +4,6 @@ import { productDBManager } from "../dao/productDBManager.js";
 import { cartDBManager } from "../dao/cartDBManager.js";
 import { authJWT, authorizeRoles } from "../middlewares/auth.js";
 import { cartModel } from "../dao/models/cartModel.js";
-import productModel from "../dao/models/productModel.js";
-import { TicketModel } from "../dao/models/ticket.model.js";
 
 const router = Router();
 const ProductService = new productDBManager();
@@ -39,7 +37,7 @@ const canAccessCart = async (req, res, next) => {
   }
 };
 
-//  VER CARRITO 
+//  VER CARRITO
 router.get("/:cid", authJWT, authorizeRoles("user", "admin"), canAccessCart, async (req, res) => {
   try {
     const result = await CartService.getProductsFromCartByID(req.params.cid);
@@ -114,65 +112,26 @@ router.post("/:cid/purchase", authJWT, authorizeRoles("user"), canAccessCart, as
   try {
     const { cid } = req.params;
 
-    const cart = await cartModel.findById(cid).populate("products.product");
-    if (!cart) {
-      return res.status(404).json({ status: "error", error: "Cart not found" });
-    }
-
-    const purchasable = [];
-    const notPurchasable = [];
-
-    for (const item of cart.products) {
-      const prod = item.product;
-      const qty = item.quantity;
-
-      if (!prod) {
-        notPurchasable.push(item);
-        continue;
-      }
-
-      if (prod.stock >= qty) purchasable.push(item);
-      else notPurchasable.push(item);
-    }
-
-    if (purchasable.length === 0) {
-      return res.status(409).json({
-        status: "error",
-        error: "Insufficient stock for all products",
-        payload: notPurchasable,
-      });
-    }
-
-    let amount = 0;
-
-    for (const item of purchasable) {
-      const prod = item.product;
-      const qty = item.quantity;
-
-      await productModel.updateOne({ _id: prod._id }, { $inc: { stock: -qty } });
-      amount += prod.price * qty;
-    }
-
-    const code = `T-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-    const ticket = await TicketModel.create({
-      code,
-      amount,
-      purchaser: req.user.email,
-    });
-
-    cart.products = notPurchasable.map((i) => ({
-      product: i.product?._id ?? i.product,
-      quantity: i.quantity,
-    }));
-
-    await cart.save();
+    const result = await CartService.purchaseCart(cid, req.user.email);
 
     return res.json({
       status: "success",
-      payload: { ticket, purchased: purchasable, notPurchased: notPurchasable },
+      payload: result,
     });
   } catch (error) {
+    // mapeo de errores controlados del manager
+    if (error?.code === "CART_NOT_FOUND") {
+      return res.status(404).json({ status: "error", error: "Cart not found" });
+    }
+
+    if (error?.code === "INSUFFICIENT_STOCK") {
+      return res.status(409).json({
+        status: "error",
+        error: error.message,
+        payload: error.payload ?? [],
+      });
+    }
+
     return res.status(500).json({ status: "error", error: error.message });
   }
 });
