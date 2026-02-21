@@ -9,6 +9,10 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true }, // hash bcrypt
     cart: { type: mongoose.Schema.Types.ObjectId, ref: "carts" },
     role: { type: String, default: "user" },
+
+    // Reset password
+    resetPasswordToken: { type: String, default: null },
+    resetPasswordExpires: { type: Date, default: null },
   },
   { timestamps: true }
 );

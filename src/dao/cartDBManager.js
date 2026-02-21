@@ -18,8 +18,10 @@ class cartDBManager {
         return cart;
     }
 
-    async createCart() {
-        return await cartModel.create({products: []});
+    async createCart(ownerId) {
+        if (!ownerId) throw new Error("OwnerId is required to create a cart");
+
+        return await cartModel.create({ owner: ownerId, products: [] });
     }
 
     async addProductByID(cid, pid) {

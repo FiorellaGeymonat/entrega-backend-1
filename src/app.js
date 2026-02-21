@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from 'express';
 import handlebars from 'express-handlebars';
 import {Server} from 'socket.io';
@@ -12,6 +15,7 @@ import viewsRouter from './routes/viewsRouter.js';
 import usersRouter from "./routes/usersRouter.js";
 import __dirname from './utils/constantsUtil.js';
 import websocket from './websocket.js';
+
 
 const app = express();
 
